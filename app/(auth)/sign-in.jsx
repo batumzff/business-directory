@@ -1,64 +1,52 @@
-import { useSignIn } from '@clerk/clerk-expo'
-import { Link, useRouter } from 'expo-router'
-import { Text, TextInput, Button, View } from 'react-native'
-import React from 'react'
+import React from 'react';
+import * as WebBrowser from 'expo-web-browser';
+import { Text, View, Button } from 'react-native';
+import { Link } from 'expo-router';
+import { useOAuth } from '@clerk/clerk-expo';
+import * as Linking from 'expo-linking';
+
+// Warm-up browser utility
+const useWarmUpBrowser = () => {
+  React.useEffect(() => {
+    // Warm up the browser to improve the user experience
+    WebBrowser.warmUpAsync().catch(console.error);
+    return () => {
+      WebBrowser.coolDownAsync().catch(console.error);
+    };
+  }, []);
+};
+
+// Ensure WebBrowser auth session completes if it's ongoing
+WebBrowser.maybeCompleteAuthSession();
 
 export default function Page() {
-  const { signIn, setActive, isLoaded } = useSignIn()
-  const router = useRouter()
+  useWarmUpBrowser();
 
-  const [emailAddress, setEmailAddress] = React.useState('')
-  const [password, setPassword] = React.useState('')
+  const { startOAuthFlow } = useOAuth({ strategy: 'oauth_google' });
 
-  // Handle the submission of the sign-in form
-  const onSignInPress = React.useCallback(async () => {
-    if (!isLoaded) return
-
-    // Start the sign-in process using the email and password provided
+  const onPress = React.useCallback(async () => {
     try {
-      const signInAttempt = await signIn.create({
-        identifier: emailAddress,
-        password,
-      })
+      const { createdSessionId, setActive } = await startOAuthFlow({
+        redirectUrl: Linking.createURL('/dashboard'),
+      });
 
-      // If sign-in process is complete, set the created session as active
-      // and redirect the user
-      if (signInAttempt.status === 'complete') {
-        await setActive({ session: signInAttempt.createdSessionId })
-        router.replace('/')
+      if (createdSessionId) {
+        // Set the active session if a new session is created
+        await setActive?.({ session: createdSessionId });
       } else {
-        // If the status isn't complete, check why. User might need to
-        // complete further steps.
-        console.error(JSON.stringify(signInAttempt, null, 2))
+        console.warn('No session was created.');
       }
     } catch (err) {
-      // See https://clerk.com/docs/custom-flows/error-handling
-      // for more info on error handling
-      console.error(JSON.stringify(err, null, 2))
+      console.error('OAuth flow error:', err);
     }
-  }, [isLoaded, emailAddress, password])
+  }, [startOAuthFlow]);
 
   return (
-    <View>
-      <TextInput
-        autoCapitalize="none"
-        value={emailAddress}
-        placeholder="Enter email"
-        onChangeText={(emailAddress) => setEmailAddress(emailAddress)}
-      />
-      <TextInput
-        value={password}
-        placeholder="Enter password"
-        secureTextEntry={true}
-        onChangeText={(password) => setPassword(password)}
-      />
-      <Button title="Sign in" onPress={onSignInPress} />
-      <View>
-        <Text>Don't have an account?</Text>
-        <Link href="/sign-up">
-          <Text>Sign up</Text>
-        </Link>
-      </View>
+    <View style={{ padding: 16 }}>
+      <Link href="/">
+        <Text style={{ fontSize: 18, color: 'blue', marginBottom: 16 }}>Home</Text>
+      </Link>
+      <Button title="Sign in with Google" onPress={onPress} />
     </View>
-  )
+  );
 }
