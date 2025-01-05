@@ -26,7 +26,8 @@ export default function PopularBusiness() {
     <View>
       <View
         style={{
-          padding: 20,
+          paddingLeft: 20,
+          marginBottom:10,
           display: "flex",
           flexDirection: "row",
           justifyContent: "space-between",
