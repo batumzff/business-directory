@@ -13,7 +13,7 @@ export default function Category() {
     }, [])
     
     const GetCategoryList=async()=>{
-        setCategoryList()
+        setCategoryList([])
         const q=query(collection(db,'Category'));
         const querySnapshot=await getDocs(q);
 
@@ -47,8 +47,14 @@ export default function Category() {
       <FlatList
         data={categoryList}
         horizontal={true}
+        showsHorizontalScrollIndicator={false}
+        style={{marginLeft:20}}
         renderItem={({item,index})=>(
-            <CategoryItem category={item} key={index}/>
+            <CategoryItem 
+            category={item} 
+            key={index}
+            onCategoryPress={(category)=>console.log(category)}
+            />
         )}
       />
     </View>
